@@ -197,29 +197,25 @@ def _download(url: str) -> bytes | None:
 
 
 def _transcribe(audio_bytes: bytes) -> str:
-    # MOCK MODE: Bypass Gemini STT because API key is out of credits
-    log.info("MOCK MODE: Skipping Gemini STT. Returning fake transcript.")
-    return "My name is John. I live in Nairobi. I am an experienced welder looking for a job."
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(audio_bytes)
+            path = f.name
+        uploaded = client.files.upload(file=path, config={"mime_type": "audio/wav"})
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                "Transcribe this audio exactly as spoken by the caller. Output only the transcript text.",
+                uploaded,
+            ],
+        )
+        os.unlink(path)
+        return response.text.strip()
+    except Exception as e:
+        log.error("Gemini STT error: %s", e)
+        return ""
 
 def _extract_profile(transcript: str, user_type: str) -> dict:
-    """Mocked profile extraction to bypass Gemini"""
-    log.info("MOCK MODE: Skipping Gemini Profile Extraction.")
-    if user_type == "employer":
-        return {
-            "name": "Jane Doe",
-            "location": "Nairobi",
-            "trade": "welding",
-            "job_details": "Need an experienced welder for gate fabrication",
-            "skill_level": "experienced"
-        }
-    else:
-        return {
-            "name": "John",
-            "location": "Nairobi",
-            "trade": "welding",
-            "skill_level": "experienced",
-            "job_details": "I am an experienced welder looking for a job"
-        }
     """Use Gemini to pull structured fields from free-form voice transcript."""
     if user_type == "employer":
         fields = """

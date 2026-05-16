@@ -21,8 +21,12 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 # ── Embedding ─────────────────────────────────────────────────────────────────
 
 def _embed(text: str) -> list[float]:
-    """MOCK MODE: Return dummy embedding vector"""
-    return [0.1] * 768
+    result = client.models.embed_content(
+        model="text-embedding-004",
+        contents=text,
+        config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY"),
+    )
+    return result.embeddings[0].values
 
 
 def _cosine(a: list[float], b: list[float]) -> float:

@@ -67,30 +67,6 @@ class Match(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
-    _seed_masters()
-
-
-def _seed_masters():
-    """Pre-load demo master artisans so matching works immediately."""
-    session = Session()
-    if session.query(Master).count() > 0:
-        session.close()
-        return
-
-    seed = [
-        Master(phone="+254700000001", name="Mzee Kamau",    location="Gikomba",    trade="welding",    years_exp=15, bio="Arc and MIG welding, gate fabrication, structural steel", capacity=2),
-        Master(phone="+254700000002", name="Mama Wanjiru",  location="Eastleigh",  trade="tailoring",  years_exp=10, bio="Fashion design, sewing machine repair, bridal wear",      capacity=3),
-        Master(phone="+254700000003", name="Baba Oduya",    location="Kamukunji",  trade="plumbing",   years_exp=12, bio="Pipe fitting, drainage, solar water heating install",    capacity=2),
-        Master(phone="+254700000004", name="Ali Hassan",    location="Mombasa",    trade="carpentry",  years_exp=20, bio="Furniture making, roofing, wood joinery",                capacity=1),
-        Master(phone="+254700000005", name="Grace Atieno",  location="Kisumu",     trade="hairdressing",years_exp=8, bio="Natural hair, braiding, salon management",              capacity=4),
-        Master(phone="+254700000006", name="Peter Mutua",   location="Machakos",   trade="motorcycle", years_exp=6,  bio="Motorbike repair, engine overhaul, electrical systems",  capacity=2),
-        Master(phone="+254700000007", name="David Kipchoge",location="Eldoret",    trade="masonry",    years_exp=18, bio="Block laying, plastering, tiling, construction",         capacity=3),
-        Master(phone="+254700000008", name="Fatuma Omar",   location="Mombasa",    trade="embroidery", years_exp=9,  bio="Kitenge designs, embroidery, textile printing",          capacity=2),
-    ]
-    session.bulk_save_objects(seed)
-    session.commit()
-    session.close()
-    print("✅ Seeded master artisans database.")
 
 
 def get_session():

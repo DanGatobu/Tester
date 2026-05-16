@@ -11,7 +11,7 @@ import logging, tempfile, os, requests, json
 
 from google import genai
 from database import get_session, Youth
-from config import GEMINI_API_KEY
+from config import GEMINI_API_KEY, GEMINI_MODEL
 
 log    = logging.getLogger(__name__)
 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -201,7 +201,7 @@ def transcribe_audio_file(path: str, mime: str = "audio/wav") -> str:
     try:
         uploaded = client.files.upload(file=path, config={"mime_type": mime})
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=GEMINI_MODEL,
             contents=[
                 "Transcribe this audio exactly as spoken by the caller. Output only the transcript text.",
                 uploaded,
@@ -262,7 +262,7 @@ Return ONLY the JSON object, nothing else. No markdown, no backticks.
 """
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=GEMINI_MODEL,
             contents=prompt,
         )
         raw = response.text.strip().strip("```json").strip("```").strip()

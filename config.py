@@ -5,7 +5,7 @@ load_dotenv()
 
 # ── Google / Gemini ───────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyAPZN_VDEXnPKzLc0_oF5nF06kPH7nMybw")
-GEMINI_MODEL   = "gemini-2.0-flash"
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # ── Africa's Talking ──────────────────────────────────────────────────────────
 AT_USERNAME    = os.getenv("AT_USERNAME", "sandbox")

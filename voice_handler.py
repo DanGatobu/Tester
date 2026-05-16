@@ -196,12 +196,10 @@ def _download(url: str) -> bytes | None:
         return None
 
 
-def _transcribe(audio_bytes: bytes) -> str:
+def transcribe_audio_file(path: str, mime: str = "audio/wav") -> str:
+    """Transcribe an audio file already on disk via Gemini STT."""
     try:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            f.write(audio_bytes)
-            path = f.name
-        uploaded = client.files.upload(file=path, config={"mime_type": "audio/wav"})
+        uploaded = client.files.upload(file=path, config={"mime_type": mime})
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
@@ -209,11 +207,28 @@ def _transcribe(audio_bytes: bytes) -> str:
                 uploaded,
             ],
         )
-        os.unlink(path)
         return response.text.strip()
     except Exception as e:
         log.error("Gemini STT error: %s", e)
         return ""
+
+
+def _transcribe(audio_bytes: bytes) -> str:
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(audio_bytes)
+            path = f.name
+        text = transcribe_audio_file(path, "audio/wav")
+        os.unlink(path)
+        return text
+    except Exception as e:
+        log.error("Gemini STT error: %s", e)
+        return ""
+
+
+def extract_profile(transcript: str, user_type: str) -> dict:
+    """Public wrapper around the Gemini profile extractor."""
+    return _extract_profile(transcript, user_type)
 
 def _extract_profile(transcript: str, user_type: str) -> dict:
     """Use Gemini to pull structured fields from free-form voice transcript."""

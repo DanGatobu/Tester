@@ -25,6 +25,7 @@ class Youth(Base):
     trade        = Column(String(100))          # e.g. "welding", "tailoring"
     skill_level  = Column(String(50))           # beginner / intermediate
     user_type    = Column(String(20), default="job_seeker")  # employer | job_seeker
+    notify_phone = Column(String(20))           # number to SMS when a match is found
     raw_speech   = Column(Text)                 # original transcript from voice
     embedding    = Column(Text)                 # JSON list of floats
     created_at   = Column(DateTime, default=datetime.utcnow)
@@ -67,6 +68,16 @@ class Match(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
+    # Lightweight migration: add notify_phone to pre-existing SQLite databases.
+    try:
+        with engine.connect() as conn:
+            cols = [r[1] for r in conn.exec_driver_sql(
+                "PRAGMA table_info(youth)").fetchall()]
+            if "notify_phone" not in cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE youth ADD COLUMN notify_phone VARCHAR(20)")
+    except Exception:
+        pass
 
 
 def get_session():

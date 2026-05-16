@@ -62,6 +62,40 @@ def send_match_sms(caller_phone: str, matches: list[dict], user_type: str = "job
     return success
 
 
+def send_match_notification(notify_phone: str, profile: dict,
+                            matches: list[dict], user_type: str = "job_seeker") -> bool:
+    """Send a single 'we found a match' SMS to the number the caller asked
+    to be notified on (used by the web simulator wizard)."""
+    if not notify_phone or not matches:
+        return False
+
+    top  = matches[0]
+    name = (profile or {}).get("name") or "there"
+
+    if user_type == "employer":
+        msg = (
+            f"🔧 Jua Kali Matcher\n"
+            f"Hi {name}! We found a worker for your job:\n"
+            f"Name: {top.get('name') or 'N/A'}\n"
+            f"Skill: {top.get('trade') or 'N/A'}\n"
+            f"Location: {top.get('location') or 'N/A'}\n"
+            f"Contact: {top.get('phone') or 'N/A'}\n"
+            f"Tell them Jua Kali sent you! 💪"
+        )
+    else:
+        msg = (
+            f"🔧 Jua Kali Matcher\n"
+            f"Hi {name}! We found a match for you:\n"
+            f"Name: {top.get('name') or 'N/A'}\n"
+            f"Trade: {top.get('trade') or 'N/A'}\n"
+            f"Location: {top.get('location') or 'N/A'}\n"
+            f"Contact: {top.get('phone') or 'N/A'}\n"
+            f"Tell them Jua Kali sent you! 💪"
+        )
+
+    return _send(notify_phone, msg)
+
+
 def _send(phone: str, message: str) -> bool:
     try:
         resp       = sms.send(message, [phone], sender_id=AT_SENDER_ID)

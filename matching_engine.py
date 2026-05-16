@@ -22,11 +22,29 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 def _embed(text: str) -> list[float]:
     result = client.models.embed_content(
-        model="text-embedding-004",
+        model="gemini-embedding-001",
         contents=text,
         config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY"),
     )
     return result.embeddings[0].values
+
+
+def _heuristic(caller: "Youth", trade: str, location: str) -> float:
+    """Embedding-free similarity used when Gemini is unavailable so the
+    demo still produces real matches."""
+    score = 0.0
+    if caller.trade and trade:
+        a, b = caller.trade.lower().strip(), trade.lower().strip()
+        if a == b:
+            score += 0.78
+        elif a in b or b in a:
+            score += 0.62
+        else:
+            score += 0.10
+    if caller.location and location and \
+            caller.location.lower().strip() == location.lower().strip():
+        score += 0.20
+    return min(round(score, 4), 0.99)
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -99,8 +117,21 @@ def find_matches(phone: str) -> list[dict]:
         if not caller:
             raise ValueError(f"Caller {phone} not in database")
 
-        caller_vec = _get_caller_embedding(caller, session)
-        ranked     = []
+        try:
+            caller_vec = _get_caller_embedding(caller, session)
+        except Exception as e:
+            log.warning("Embeddings unavailable — using heuristic matching: %s", e)
+            caller_vec = None
+
+        def sim(other, emb_getter) -> float:
+            if caller_vec is not None:
+                try:
+                    return _cosine(caller_vec, emb_getter(other, session))
+                except Exception as e:
+                    log.warning("Embed failed, heuristic fallback: %s", e)
+            return _heuristic(caller, other.trade, other.location)
+
+        ranked = []
 
         if caller.user_type == "employer":
             # Employers see job seekers
@@ -112,8 +143,7 @@ def find_matches(phone: str) -> list[dict]:
                 .all()
             )
             for c in candidates:
-                vec   = _get_caller_embedding(c, session)
-                score = _cosine(caller_vec, vec)
+                score = sim(c, _get_caller_embedding)
                 if score >= MATCH_THRESHOLD:
                     ranked.append({
                         "name":     c.name,
@@ -135,8 +165,7 @@ def find_matches(phone: str) -> list[dict]:
                 .all()
             )
             for e in employers:
-                vec   = _get_caller_embedding(e, session)
-                score = _cosine(caller_vec, vec)
+                score = sim(e, _get_caller_embedding)
                 if score >= MATCH_THRESHOLD:
                     ranked.append({
                         "name":     e.name,
@@ -151,8 +180,7 @@ def find_matches(phone: str) -> list[dict]:
             # — seeded master artisans
             masters = session.query(Master).filter(Master.capacity > 0).all()
             for m in masters:
-                vec   = _get_master_embedding(m, session)
-                score = _cosine(caller_vec, vec)
+                score = sim(m, _get_master_embedding)
                 if score >= MATCH_THRESHOLD:
                     ranked.append({
                         "name":     m.name,
